@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spring AI - 서버 상태</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #555;
+        }
+        
+        .value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .info {
+            background: #e3f2fd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 5px solid #2196F3;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Spring AI</h1>
+        
+        <div class="status-card">
+            <h2>서버 상태</h2>
+            <div class="status-item">
+                <span class="label">상태:</span>
+                <span class="value success">
+                    <span class="status-indicator"></span>
+                    <span th:text="${serverStatus}">Running</span>
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="label">현재 시간:</span>
+                <span class="value" th:text="${#temporals.format(currentTime, 'yyyy-MM-dd HH:mm:ss')}">2024-01-01 12:00:00</span>
+            </div>
+            <div class="status-item">
+                <span class="label">포트:</span>
+                <span class="value">8080</span>
+            </div>
+        </div>
+        
+        <div class="info">
+            <h3>✅ 서버가 정상적으로 실행되고 있습니다!</h3>
+            <p>Spring AI 애플리케이션이 성공적으로 시작되었습니다. 이제 AI 기능을 사용할 준비가 되었습니다.</p>
+        </div>
+        
+        <div class="footer">
+            <p>Spring Boot 3.5.4 | Spring AI 1.0.1 | Kotlin</p>
+        </div>
+    </div>
+</body>
+</html>
