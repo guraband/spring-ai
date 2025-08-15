@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: spring-ai
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+    vertex:
+      ai:
+        gemini:
+          project-id: ${VERTEX_AI_PROJECT_ID}
+          location: ${VERTEX_AI_LOCATION}
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiAudioSpeechAutoConfiguration
+      - org.springframework.ai.model.vertexai.autoconfigure.gemini.VertexAiGeminiChatAutoConfiguration
