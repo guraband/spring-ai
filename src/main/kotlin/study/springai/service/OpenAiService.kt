@@ -13,33 +13,33 @@ import reactor.core.publisher.Flux
 class OpenAiService(
     private val openAiChatModel: OpenAiChatModel
 ) {
+    companion object {
+        private const val MODEL_NAME = "gpt-4o-mini"
+        private const val TEMPERATURE = 0.7
+    }
+
     fun generate(text: String): String? {
-        val systemMessage = SystemMessage("")
-        val userMessage = UserMessage(text)
-        val assistantMessage = AssistantMessage("")
-
-        val options = OpenAiChatOptions.builder()
-            .model("gpt-4o-mini")
-            .temperature(0.7)
-            .build()
-
-        val prompt = Prompt(listOf(systemMessage, userMessage, assistantMessage), options)
+        val prompt = createPrompt(text)
         val response = openAiChatModel.call(prompt)
         return response.result.output.text
     }
 
     fun generateStream(text: String): Flux<String> {
+        val prompt = createPrompt(text)
+        return openAiChatModel.stream(prompt)
+            .mapNotNull { it.result.output.text }
+    }
+
+    private fun createPrompt(text: String): Prompt {
         val systemMessage = SystemMessage("")
         val userMessage = UserMessage(text)
         val assistantMessage = AssistantMessage("")
 
         val options = OpenAiChatOptions.builder()
-            .model("gpt-4o-mini")
-            .temperature(0.7)
+            .model(MODEL_NAME)
+            .temperature(TEMPERATURE)
             .build()
 
-        val prompt = Prompt(listOf(systemMessage, userMessage, assistantMessage), options)
-        return openAiChatModel.stream(prompt)
-            .mapNotNull { it.result.output.text }
+        return Prompt(listOf(systemMessage, userMessage, assistantMessage), options)
     }
 }
