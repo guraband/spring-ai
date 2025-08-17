@@ -4,42 +4,101 @@ import org.springframework.ai.chat.messages.AssistantMessage
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.prompt.Prompt
-import org.springframework.ai.openai.OpenAiChatModel
-import org.springframework.ai.openai.OpenAiChatOptions
+import org.springframework.ai.embedding.EmbeddingRequest
+import org.springframework.ai.image.ImagePrompt
+import org.springframework.ai.openai.*
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 
 @Service
 class OpenAiService(
-    private val openAiChatModel: OpenAiChatModel
+    private val openAiChatModel: OpenAiChatModel,
+    private val openAiEmbeddingModel: OpenAiEmbeddingModel,
+    private val openAiImageModel: OpenAiImageModel,
 ) {
     companion object {
-        private const val MODEL_NAME = "gpt-4o-mini"
-        private const val TEMPERATURE = 0.7
+        private const val DEFAULT_MODEL_NAME = "gpt-4o-mini"
+        private const val DEFAULT_TEMPERATURE = 0.5
+        private const val DEFAULT_EMBEDDING_MODEL_NAME = "gpt-4o-mini"
+        private const val DEFAULT_IMAGE_MODEL_NAME = "gpt-image-1"
     }
 
-    fun generate(text: String): String? {
-        val prompt = createPrompt(text)
+    // 1. Chat generation methods
+    fun generate(
+        text: String,
+        model: String = DEFAULT_MODEL_NAME,
+        temperature: Double = DEFAULT_TEMPERATURE
+    ): String? {
+        val prompt = createPrompt(text, model, temperature)
         val response = openAiChatModel.call(prompt)
         return response.result.output.text
     }
 
-    fun generateStream(text: String): Flux<String> {
-        val prompt = createPrompt(text)
+    fun generateStream(
+        text: String,
+        model: String = DEFAULT_MODEL_NAME,
+        temperature: Double = DEFAULT_TEMPERATURE
+    ): Flux<String> {
+        val prompt = createPrompt(text, model, temperature)
         return openAiChatModel.stream(prompt)
             .mapNotNull { it.result.output.text }
     }
 
-    private fun createPrompt(text: String): Prompt {
+    private fun createPrompt(
+        text: String,
+        model: String,
+        temperature: Double,
+    ): Prompt {
         val systemMessage = SystemMessage("")
         val userMessage = UserMessage(text)
         val assistantMessage = AssistantMessage("")
 
         val options = OpenAiChatOptions.builder()
-            .model(MODEL_NAME)
-            .temperature(TEMPERATURE)
+            .model(model)
+            .temperature(temperature)
             .build()
 
         return Prompt(listOf(systemMessage, userMessage, assistantMessage), options)
+    }
+
+    // 2. Embedding generation
+    fun generateEmbedding(
+        texts: List<String>,
+        model: String = DEFAULT_EMBEDDING_MODEL_NAME
+    ): List<FloatArray> {
+        val options = OpenAiEmbeddingOptions.builder()
+            .model(model)
+            .build()
+
+        val prompt = EmbeddingRequest(texts, options)
+
+        val response = openAiEmbeddingModel.call(prompt)
+        return response.results.stream().map { it.output }.toList()
+    }
+
+    // 3. Image generation
+    fun generateImage(
+        text: String,
+        count: Int = 1,
+        width: Int = 1024,
+        height: Int = 1024,
+        quality: String = "high",
+        model: String = DEFAULT_IMAGE_MODEL_NAME
+    ): List<String> {
+        val options = OpenAiImageOptions.builder()
+            .N(count)
+            .width(width)
+            .height(height)
+            .quality(quality)
+            .model(model)
+            .build()
+
+        val prompt = ImagePrompt(text, options)
+
+        val response = openAiImageModel.call(prompt)
+
+        return response.results.stream()
+            .map { it.output.url }
+            .toList()
     }
 }
