@@ -1,4 +1,4 @@
-package study.springai.controller
+package study.springai.controller.web
 
 import org.springframework.stereotype.Controller
 import org.springframework.ui.Model
