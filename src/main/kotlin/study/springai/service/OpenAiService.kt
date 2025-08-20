@@ -1,5 +1,7 @@
 package study.springai.service
 
+import org.springframework.ai.chat.memory.ChatMemoryRepository
+import org.springframework.ai.chat.memory.MessageWindowChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage
 import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
@@ -15,6 +17,7 @@ class OpenAiService(
     private val openAiChatModel: OpenAiChatModel,
     private val openAiEmbeddingModel: OpenAiEmbeddingModel,
     private val openAiImageModel: OpenAiImageModel,
+    private val chatMemoryRepository: ChatMemoryRepository,
 ) {
     companion object {
         private const val DEFAULT_MODEL_NAME = "gpt-4o-mini"
@@ -39,9 +42,37 @@ class OpenAiService(
         model: String = DEFAULT_MODEL_NAME,
         temperature: Double = DEFAULT_TEMPERATURE
     ): Flux<String> {
-        val prompt = createPrompt(text, model, temperature)
+
+        // TODO userId와 channelId를 이용해 채팅 메모리 저장
+        val chatId = "tempUser_1"
+
+        val chatMemory = MessageWindowChatMemory.builder()
+            .maxMessages(10)
+            .chatMemoryRepository(chatMemoryRepository)
+            .build()
+        chatMemory.add(chatId, UserMessage(text))
+
+        val options = OpenAiChatOptions.builder()
+            .model(model)
+            .temperature(temperature)
+            .build()
+
+        val prompt = Prompt(chatMemory.get(chatId), options)
+
+        // 응답 메시지를 저장할 임시 버퍼
+        val responseBuffer = StringBuilder()
+
         return openAiChatModel.stream(prompt)
-            .mapNotNull { it.result.output.text }
+            .mapNotNull { response ->
+                val responseMessage = response.result.output.text ?: ""
+                responseBuffer.append(responseMessage)
+                responseMessage
+            }
+            .doOnComplete {
+                val finalResponse = responseBuffer.toString()
+                chatMemory.add(chatId, AssistantMessage(finalResponse))
+                chatMemoryRepository.saveAll(chatId, chatMemory.get(chatId))
+            }
     }
 
     private fun createPrompt(

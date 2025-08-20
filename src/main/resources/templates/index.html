@@ -71,7 +71,10 @@
             padding: 12px 16px;
             border-radius: 18px;
             word-wrap: break-word;
-            line-height: 1.4;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            text-align: justify;
         }
 
         .message.user .message-content {
@@ -148,6 +151,28 @@
             animation: typing 1.5s infinite;
         }
 
+        .cursor-blink {
+            display: inline-block;
+            width: 2px;
+            height: 1.2em;
+            background-color: #667eea;
+            margin-left: 2px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0;
+            }
+        }
+
         @keyframes typing {
 
             0%,
@@ -195,9 +220,7 @@
 
         <div class="chat-container" id="chatContainer">
             <div class="message assistant">
-                <div class="message-content">
-                    안녕하세요! Spring AI 채팅봇입니다. 무엇을 도와드릴까요? 🤖
-                </div>
+                <div class="message-content">안녕하세요! Spring AI 채팅봇입니다. 무엇을 도와드릴까요? 🤖</div>
             </div>
         </div>
 
@@ -228,7 +251,13 @@
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
-            messageContent.textContent = content;
+            // 개행 문자를 <br>로 변환하고, 연속된 공백도 보존
+            const formattedContent = content
+                .replace(/\n/g, '<br>') // 개행을 <br>로
+                .replace(/\s{2,}/g, function (match) {
+                    return '&nbsp;'.repeat(match.length);
+                });
+            messageContent.innerHTML = formattedContent;
 
             messageDiv.appendChild(messageContent);
             chatContainer.appendChild(messageDiv);
@@ -287,7 +316,6 @@
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
 
-                console.log('스트림 응답 시작');
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let assistantMessage = '';
@@ -299,36 +327,38 @@
                     const { done, value } = await reader.read();
 
                     if (done) {
-                        console.log('스트림 완료');
                         break;
                     }
 
                     const chunk = decoder.decode(value, { stream: true });
-                    console.log('받은 청크:', chunk);
 
                     const lines = chunk.split('\n');
 
                     for (const line of lines) {
-                        console.log('처리 중인 라인:', line);
-
                         if (line.trim()) {
                             try {
                                 const parsed = JSON.parse(line);
-                                console.log('파싱된 JSON:', parsed);
 
                                 if (parsed.done) {
-                                    console.log('스트림 종료 신호 수신');
+                                    // 커서 깜빡임 제거
+                                    if (assistantMessageDiv) {
+                                        const messageContent = assistantMessageDiv.querySelector('.message-content');
+                                        const formattedMessage = assistantMessage
+                                            .replace(/\n/g, '<br>') // 개행을 <br>로
+                                            .replace(/\s{2,}/g, function (match) {
+                                                return '&nbsp;'.repeat(match.length);
+                                            });
+                                        messageContent.innerHTML = formattedMessage;
+                                    }
                                     updateStatus('응답 완료');
                                     return;
                                 }
 
-                                if (parsed.content && parsed.content.trim() !== '') {
+                                if (parsed.content !== undefined) {
                                     assistantMessage += parsed.content;
-                                    console.log('누적된 메시지:', assistantMessage);
 
                                     // 첫 번째 청크에서 메시지 div 생성
                                     if (!assistantMessageDiv) {
-                                        console.log('AI 메시지 div 생성');
                                         assistantMessageDiv = document.createElement('div');
                                         assistantMessageDiv.className = 'message assistant';
                                         const messageContent = document.createElement('div');
@@ -337,12 +367,18 @@
                                         chatContainer.appendChild(assistantMessageDiv);
                                     }
 
-                                    // 메시지 내용 업데이트
-                                    assistantMessageDiv.querySelector('.message-content').textContent = assistantMessage;
+                                    // 메시지 내용 업데이트 - 줄바꿈 처리 개선
+                                    const messageContent = assistantMessageDiv.querySelector('.message-content');
+                                    // 개행 문자를 <br>로 변환하고, 연속된 공백도 보존
+                                    const formattedMessage = assistantMessage
+                                        .replace(/\n/g, '<br>') // 개행을 <br>로
+                                        .replace(/\s{2,}/g, function (match) {
+                                            return '&nbsp;'.repeat(match.length);
+                                        });
+                                    messageContent.innerHTML = formattedMessage + '<span class="cursor-blink"></span>';
                                     chatContainer.scrollTop = chatContainer.scrollHeight;
                                 }
                             } catch (e) {
-                                console.log('JSON 파싱 실패:', e, '데이터:', line);
                                 // JSON 파싱 실패 시 무시
                             }
                         }

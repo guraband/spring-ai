@@ -1,5 +1,6 @@
 package study.springai.controller.api
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
@@ -15,6 +16,7 @@ import study.springai.service.OpenAiService
 @RequestMapping("/api/chat")
 class ChatController(
     private val openAiService: OpenAiService,
+    private val objectMapper: ObjectMapper,
 ) {
     @PostMapping("")
     fun chat(
@@ -32,9 +34,12 @@ class ChatController(
             .header("Connection", "keep-alive")
             .body(
                 openAiService.generateStream(request.message)
-                    .filter { it.isNotBlank() }
-                    .map { content -> "{\"content\": \"$content\"}\n" }
-                    .concatWith(Flux.just("{\"done\": true}\n"))
+                    .filter { it.isNotEmpty() }
+                    .map { content -> 
+                        val response = mapOf("content" to content)
+                        objectMapper.writeValueAsString(response) + "\n"
+                    }
+                    .concatWith(Flux.just(objectMapper.writeValueAsString(mapOf("done" to true)) + "\n"))
             )
     }
 }

@@ -1,7 +1,17 @@
 spring:
   application:
     name: spring-ai
+  datasource:
+    url: jdbc:mysql://${MARIADB_HOST}:${MARIADB_PORT}/${MARIADB_DATABASE}
+    username: ${MARIADB_USER}
+    password: ${MARIADB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   ai:
+    chat:
+      memory:
+        repository:
+          jdbc:
+            initialize-schema: never
     openai:
       api-key: ${OPENAI_API_KEY}
     vertex:
