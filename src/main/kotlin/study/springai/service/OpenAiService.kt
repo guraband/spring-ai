@@ -3,7 +3,6 @@ package study.springai.service
 import org.springframework.ai.chat.memory.ChatMemoryRepository
 import org.springframework.ai.chat.memory.MessageWindowChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage
-import org.springframework.ai.chat.messages.SystemMessage
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.embedding.EmbeddingRequest
@@ -20,43 +19,40 @@ class OpenAiService(
     private val chatMemoryRepository: ChatMemoryRepository,
 ) {
     companion object {
-        private const val DEFAULT_MODEL_NAME = "gpt-4o-mini"
+        private const val DEFAULT_CHAT_MODEL = "gpt-4o-mini"
         private const val DEFAULT_TEMPERATURE = 0.5
-        private const val DEFAULT_EMBEDDING_MODEL_NAME = "gpt-4o-mini"
-        private const val DEFAULT_IMAGE_MODEL_NAME = "gpt-image-1"
+        private const val DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
+        private const val DEFAULT_IMAGE_MODEL = "gpt-image-1"
+        private const val DEFAULT_CHAT_ID_PREFIX = "user_"
+        private const val DEFAULT_MAX_MESSAGES = 10
     }
 
     // 1. Chat generation methods
     fun generate(
         text: String,
-        model: String = DEFAULT_MODEL_NAME,
+        model: String = DEFAULT_CHAT_MODEL,
         temperature: Double = DEFAULT_TEMPERATURE
     ): String? {
-        val prompt = createPrompt(text, model, temperature)
+        val options = createChatOptions(model, temperature)
+        val prompt = Prompt(listOf(UserMessage(text)), options)
         val response = openAiChatModel.call(prompt)
         return response.result.output.text
     }
 
     fun generateStream(
         text: String,
-        model: String = DEFAULT_MODEL_NAME,
-        temperature: Double = DEFAULT_TEMPERATURE
+        model: String = DEFAULT_CHAT_MODEL,
+        temperature: Double = DEFAULT_TEMPERATURE,
+        userId: String = "defaultUser"
     ): Flux<String> {
 
-        // TODO userId와 channelId를 이용해 채팅 메모리 저장
-        val chatId = "tempUser_1"
-
-        val chatMemory = MessageWindowChatMemory.builder()
-            .maxMessages(10)
-            .chatMemoryRepository(chatMemoryRepository)
-            .build()
+        // TODO 개선 필요
+        val chatId = DEFAULT_CHAT_ID_PREFIX + userId
+        
+        val chatMemory = createChatMemory()
         chatMemory.add(chatId, UserMessage(text))
 
-        val options = OpenAiChatOptions.builder()
-            .model(model)
-            .temperature(temperature)
-            .build()
-
+        val options = createChatOptions(model, temperature)
         val prompt = Prompt(chatMemory.get(chatId), options)
 
         // 응답 메시지를 저장할 임시 버퍼
@@ -75,27 +71,25 @@ class OpenAiService(
             }
     }
 
-    private fun createPrompt(
-        text: String,
-        model: String,
-        temperature: Double,
-    ): Prompt {
-        val systemMessage = SystemMessage("")
-        val userMessage = UserMessage(text)
-        val assistantMessage = AssistantMessage("")
-
-        val options = OpenAiChatOptions.builder()
+    // 공통 메소드들
+    private fun createChatOptions(model: String, temperature: Double): OpenAiChatOptions {
+        return OpenAiChatOptions.builder()
             .model(model)
             .temperature(temperature)
             .build()
+    }
 
-        return Prompt(listOf(systemMessage, userMessage, assistantMessage), options)
+    private fun createChatMemory(): MessageWindowChatMemory {
+        return MessageWindowChatMemory.builder()
+            .maxMessages(DEFAULT_MAX_MESSAGES)
+            .chatMemoryRepository(chatMemoryRepository)
+            .build()
     }
 
     // 2. Embedding generation
     fun generateEmbedding(
         texts: List<String>,
-        model: String = DEFAULT_EMBEDDING_MODEL_NAME
+        model: String = DEFAULT_EMBEDDING_MODEL
     ): List<FloatArray> {
         val options = OpenAiEmbeddingOptions.builder()
             .model(model)
@@ -114,7 +108,7 @@ class OpenAiService(
         width: Int = 1024,
         height: Int = 1024,
         quality: String = "high",
-        model: String = DEFAULT_IMAGE_MODEL_NAME
+        model: String = DEFAULT_IMAGE_MODEL
     ): List<String> {
         val options = OpenAiImageOptions.builder()
             .N(count)

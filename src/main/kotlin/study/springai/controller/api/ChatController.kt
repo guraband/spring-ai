@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import reactor.core.publisher.Flux
 import study.springai.dto.ChatRequest
@@ -18,6 +17,9 @@ class ChatController(
     private val openAiService: OpenAiService,
     private val objectMapper: ObjectMapper,
 ) {
+    private fun createJsonResponse(key: String, value: Any): String {
+        return objectMapper.writeValueAsString(mapOf(key to value)) + "\n"
+    }
     @PostMapping("")
     fun chat(
         @RequestBody request: ChatRequest
@@ -35,11 +37,8 @@ class ChatController(
             .body(
                 openAiService.generateStream(request.message)
                     .filter { it.isNotEmpty() }
-                    .map { content -> 
-                        val response = mapOf("content" to content)
-                        objectMapper.writeValueAsString(response) + "\n"
-                    }
-                    .concatWith(Flux.just(objectMapper.writeValueAsString(mapOf("done" to true)) + "\n"))
+                    .map { content -> createJsonResponse("content", content) }
+                    .concatWith(Flux.just(createJsonResponse("done", true)))
             )
     }
 }

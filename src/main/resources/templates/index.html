@@ -245,30 +245,49 @@
         const typingIndicator = document.getElementById('typingIndicator');
         const statusBar = document.getElementById('statusBar');
 
+        // 텍스트 포매팅 함수 - 개행과 공백 처리
+        function formatMessageContent(content) {
+            return content
+                .replace(/\n/g, '<br>') // 개행을 <br>로
+                .replace(/\s{2,}/g, function (match) {
+                    return '&nbsp;'.repeat(match.length);
+                });
+        }
+
+        // 채팅 컨테이너를 맨 아래로 스크롤
+        function scrollToBottom() {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Assistant 메시지 div 생성
+        function createAssistantMessageDiv() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            messageDiv.appendChild(messageContent);
+            chatContainer.appendChild(messageDiv);
+            return messageDiv;
+        }
+
         function addMessage(content, isUser = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isUser ? 'user' : 'assistant'}`;
 
             const messageContent = document.createElement('div');
             messageContent.className = 'message-content';
-            // 개행 문자를 <br>로 변환하고, 연속된 공백도 보존
-            const formattedContent = content
-                .replace(/\n/g, '<br>') // 개행을 <br>로
-                .replace(/\s{2,}/g, function (match) {
-                    return '&nbsp;'.repeat(match.length);
-                });
-            messageContent.innerHTML = formattedContent;
+            messageContent.innerHTML = formatMessageContent(content);
 
             messageDiv.appendChild(messageContent);
             chatContainer.appendChild(messageDiv);
 
             // 스크롤을 맨 아래로
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottom();
         }
 
         function showTypingIndicator() {
             typingIndicator.style.display = 'block';
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottom();
         }
 
         function hideTypingIndicator() {
@@ -280,7 +299,7 @@
             errorDiv.className = 'error-message';
             errorDiv.textContent = `오류: ${message}`;
             chatContainer.appendChild(errorDiv);
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            scrollToBottom();
         }
 
         function updateStatus(message) {
@@ -343,12 +362,7 @@
                                     // 커서 깜빡임 제거
                                     if (assistantMessageDiv) {
                                         const messageContent = assistantMessageDiv.querySelector('.message-content');
-                                        const formattedMessage = assistantMessage
-                                            .replace(/\n/g, '<br>') // 개행을 <br>로
-                                            .replace(/\s{2,}/g, function (match) {
-                                                return '&nbsp;'.repeat(match.length);
-                                            });
-                                        messageContent.innerHTML = formattedMessage;
+                                        messageContent.innerHTML = formatMessageContent(assistantMessage);
                                     }
                                     updateStatus('응답 완료');
                                     return;
@@ -359,24 +373,13 @@
 
                                     // 첫 번째 청크에서 메시지 div 생성
                                     if (!assistantMessageDiv) {
-                                        assistantMessageDiv = document.createElement('div');
-                                        assistantMessageDiv.className = 'message assistant';
-                                        const messageContent = document.createElement('div');
-                                        messageContent.className = 'message-content';
-                                        assistantMessageDiv.appendChild(messageContent);
-                                        chatContainer.appendChild(assistantMessageDiv);
+                                        assistantMessageDiv = createAssistantMessageDiv();
                                     }
 
-                                    // 메시지 내용 업데이트 - 줄바꿈 처리 개선
+                                    // 메시지 내용 업데이트 - 커서 깜빡임과 함께 표시
                                     const messageContent = assistantMessageDiv.querySelector('.message-content');
-                                    // 개행 문자를 <br>로 변환하고, 연속된 공백도 보존
-                                    const formattedMessage = assistantMessage
-                                        .replace(/\n/g, '<br>') // 개행을 <br>로
-                                        .replace(/\s{2,}/g, function (match) {
-                                            return '&nbsp;'.repeat(match.length);
-                                        });
-                                    messageContent.innerHTML = formattedMessage + '<span class="cursor-blink"></span>';
-                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    messageContent.innerHTML = formatMessageContent(assistantMessage) + '<span class="cursor-blink"></span>';
+                                    scrollToBottom();
                                 }
                             } catch (e) {
                                 // JSON 파싱 실패 시 무시
