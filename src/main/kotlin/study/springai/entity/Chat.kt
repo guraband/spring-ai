@@ -6,7 +6,7 @@ import org.springframework.ai.chat.messages.MessageType
 import java.time.LocalDateTime
 
 @Entity
-@Table
+@Table(name = "chat")
 class Chat(
     @Column
     var userId: String? = null,

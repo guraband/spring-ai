@@ -12,6 +12,7 @@ import org.springframework.ai.openai.*
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
+import reactor.core.scheduler.Schedulers
 import study.springai.entity.Chat
 import study.springai.repository.ChatRepository
 
@@ -72,19 +73,25 @@ class OpenAiService(
                 responseBuffer.append(responseMessage)
                 responseMessage
             }
+            .publishOn(Schedulers.boundedElastic())
             .doOnComplete {
-                val finalResponse = responseBuffer.toString()
-                chatMemory.add(userId, AssistantMessage(finalResponse))
-                chatMemoryRepository.saveAll(userId, chatMemory.get(userId))
-
-                val assistantChat = Chat(
-                    userId = userId,
-                    type = MessageType.ASSISTANT,
-                    content = finalResponse,
-                )
-
-                chatRepository.saveAll(listOf(userChat, assistantChat))
+                saveChatHistory(userId, userChat, responseBuffer.toString())
             }
+    }
+
+    @Transactional
+    fun saveChatHistory(userId: String, userChat: Chat, finalResponse: String) {
+        val chatMemory = createChatMemory()
+        chatMemory.add(userId, AssistantMessage(finalResponse))
+        chatMemoryRepository.saveAll(userId, chatMemory.get(userId))
+
+        val assistantChat = Chat(
+            userId = userId,
+            type = MessageType.ASSISTANT,
+            content = finalResponse,
+        )
+
+        chatRepository.saveAll(listOf(userChat, assistantChat))
     }
 
     // 공통 메소드들
