@@ -10,6 +10,7 @@ import org.springframework.ai.image.ImagePrompt
 import org.springframework.ai.openai.*
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
+import study.springai.repository.ChatRepository
 
 @Service
 class OpenAiService(
@@ -17,6 +18,7 @@ class OpenAiService(
     private val openAiEmbeddingModel: OpenAiEmbeddingModel,
     private val openAiImageModel: OpenAiImageModel,
     private val chatMemoryRepository: ChatMemoryRepository,
+    private val chatRepository: ChatRepository,
 ) {
     companion object {
         private const val DEFAULT_CHAT_MODEL = "gpt-4o-mini"
@@ -48,7 +50,7 @@ class OpenAiService(
 
         // TODO 개선 필요
         val chatId = DEFAULT_CHAT_ID_PREFIX + userId
-        
+
         val chatMemory = createChatMemory()
         chatMemory.add(chatId, UserMessage(text))
 
