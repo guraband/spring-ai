@@ -3,16 +3,20 @@ package study.springai.service
 import org.springframework.ai.chat.memory.ChatMemoryRepository
 import org.springframework.ai.chat.memory.MessageWindowChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage
+import org.springframework.ai.chat.messages.MessageType
 import org.springframework.ai.chat.messages.UserMessage
 import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.embedding.EmbeddingRequest
 import org.springframework.ai.image.ImagePrompt
 import org.springframework.ai.openai.*
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
+import study.springai.entity.Chat
 import study.springai.repository.ChatRepository
 
 @Service
+@Transactional(readOnly = true)
 class OpenAiService(
     private val openAiChatModel: OpenAiChatModel,
     private val openAiEmbeddingModel: OpenAiEmbeddingModel,
@@ -25,7 +29,6 @@ class OpenAiService(
         private const val DEFAULT_TEMPERATURE = 0.5
         private const val DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small"
         private const val DEFAULT_IMAGE_MODEL = "gpt-image-1"
-        private const val DEFAULT_CHAT_ID_PREFIX = "user_"
         private const val DEFAULT_MAX_MESSAGES = 10
     }
 
@@ -41,21 +44,24 @@ class OpenAiService(
         return response.result.output.text
     }
 
+    @Transactional
     fun generateStream(
         text: String,
         model: String = DEFAULT_CHAT_MODEL,
         temperature: Double = DEFAULT_TEMPERATURE,
-        userId: String = "defaultUser"
+        userId: String = "1",
     ): Flux<String> {
-
-        // TODO 개선 필요
-        val chatId = DEFAULT_CHAT_ID_PREFIX + userId
+        // 전체 대화 저장용
+        val userChat = Chat(
+            userId = userId,
+            content = text,
+        )
 
         val chatMemory = createChatMemory()
-        chatMemory.add(chatId, UserMessage(text))
+        chatMemory.add(userId, UserMessage(text))
 
         val options = createChatOptions(model, temperature)
-        val prompt = Prompt(chatMemory.get(chatId), options)
+        val prompt = Prompt(chatMemory.get(userId), options)
 
         // 응답 메시지를 저장할 임시 버퍼
         val responseBuffer = StringBuilder()
@@ -68,8 +74,16 @@ class OpenAiService(
             }
             .doOnComplete {
                 val finalResponse = responseBuffer.toString()
-                chatMemory.add(chatId, AssistantMessage(finalResponse))
-                chatMemoryRepository.saveAll(chatId, chatMemory.get(chatId))
+                chatMemory.add(userId, AssistantMessage(finalResponse))
+                chatMemoryRepository.saveAll(userId, chatMemory.get(userId))
+
+                val assistantChat = Chat(
+                    userId = userId,
+                    type = MessageType.ASSISTANT,
+                    content = finalResponse,
+                )
+
+                chatRepository.saveAll(listOf(userChat, assistantChat))
             }
     }
 

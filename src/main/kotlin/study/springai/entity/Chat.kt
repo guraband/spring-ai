@@ -8,10 +8,6 @@ import java.time.LocalDateTime
 @Entity
 @Table
 class Chat(
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null,
-
     @Column
     var userId: String? = null,
 
@@ -19,9 +15,16 @@ class Chat(
     var content: String,
 
     @Enumerated(EnumType.STRING)
-    var type: MessageType,
+    var type: MessageType = MessageType.USER,
 
     @CreationTimestamp
     @Column(updatable = false)
-    var createdAt: LocalDateTime? = null
-)
+    var createdAt: LocalDateTime = LocalDateTime.now()
+) {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    var id: Long? = null
+        protected set
+
+
+}
