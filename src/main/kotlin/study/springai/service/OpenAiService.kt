@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
 import reactor.core.scheduler.Schedulers
+import study.springai.dto.CityResponse
 import study.springai.entity.Chat
 import study.springai.repository.ChatRepository
 
@@ -45,6 +46,20 @@ class OpenAiService(
         val prompt = Prompt(listOf(UserMessage(text)), options)
         val response = openAiChatModel.call(prompt)
         return response.result.output.text
+    }
+
+    fun generateUsingOutputConverter(
+        text: String,
+        model: String = DEFAULT_CHAT_MODEL,
+        temperature: Double = DEFAULT_TEMPERATURE
+    ): CityResponse? {
+        val options = createChatOptions(model, temperature)
+        val prompt = Prompt(listOf(UserMessage(text)), options)
+        val response = openAiChatModel.call(prompt)
+
+        return openAiChatClient.prompt(prompt)
+            .call()
+            .entity(CityResponse::class.java)
     }
 
     @Transactional

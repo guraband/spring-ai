@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*
 import reactor.core.publisher.Flux
 import study.springai.dto.ChatRequest
 import study.springai.dto.ChatResponse
+import study.springai.dto.CityResponse
 import study.springai.service.ChatService
 import study.springai.service.OpenAiService
 
@@ -27,6 +28,16 @@ class ChatController(
     ): ResponseEntity<String> {
         return ResponseEntity.ok(
             openAiService.generate(request.message),
+        )
+    }
+
+    // Output converter 테스트용
+    @PostMapping("/output-converter")
+    fun chatUsingOutputConverter(
+        @RequestBody request: ChatRequest
+    ): ResponseEntity<CityResponse> {
+        return ResponseEntity.ok(
+            openAiService.generateUsingOutputConverter(request.message),
         )
     }
 

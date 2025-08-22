@@ -13,3 +13,7 @@ class ChatResponse(
     val type = chat.type
     val content = chat.content
 }
+
+data class CityResponse(
+    val cities: List<String>,
+)
