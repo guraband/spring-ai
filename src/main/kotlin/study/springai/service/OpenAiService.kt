@@ -1,5 +1,6 @@
 package study.springai.service
 
+import org.springframework.ai.chat.client.ChatClient
 import org.springframework.ai.chat.memory.ChatMemoryRepository
 import org.springframework.ai.chat.memory.MessageWindowChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage
@@ -24,6 +25,7 @@ class OpenAiService(
     private val openAiImageModel: OpenAiImageModel,
     private val chatMemoryRepository: ChatMemoryRepository,
     private val chatRepository: ChatRepository,
+    private val openAiChatClient: ChatClient,
 ) {
     companion object {
         private const val DEFAULT_CHAT_MODEL = "gpt-4o-mini"
@@ -67,6 +69,19 @@ class OpenAiService(
         // 응답 메시지를 저장할 임시 버퍼
         val responseBuffer = StringBuilder()
 
+        return openAiChatClient.prompt(prompt)
+            .stream()
+            .content()
+            .map { response ->
+                // 응답 메시지를 버퍼에 추가
+                responseBuffer.append(response)
+                response
+            }
+            .publishOn(Schedulers.boundedElastic())
+            .doOnComplete {
+                saveChatHistory(userId, userChat, responseBuffer.toString())
+            }
+        /*
         return openAiChatModel.stream(prompt)
             .mapNotNull { response ->
                 val responseMessage = response.result.output.text ?: ""
@@ -77,6 +92,7 @@ class OpenAiService(
             .doOnComplete {
                 saveChatHistory(userId, userChat, responseBuffer.toString())
             }
+        */
     }
 
     @Transactional
