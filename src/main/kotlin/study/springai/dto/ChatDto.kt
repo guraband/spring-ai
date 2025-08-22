@@ -4,6 +4,7 @@ import study.springai.entity.Chat
 
 data class ChatRequest(
     val message: String,
+    val userId: String = "defaultUserId",
 )
 
 class ChatResponse(

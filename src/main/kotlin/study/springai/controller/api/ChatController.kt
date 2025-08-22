@@ -36,7 +36,7 @@ class ChatController(
             .header("Cache-Control", "no-cache")
             .header("Connection", "keep-alive")
             .body(
-                openAiService.generateStream(request.message)
+                openAiService.generateStream(userId = request.userId, text = request.message)
                     .filter { it.isNotEmpty() }
                     .map { content -> createJsonResponse("content", content) }
                     .concatWith(Flux.just(createJsonResponse("done", true)))

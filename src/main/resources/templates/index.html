@@ -267,7 +267,7 @@
         const typingIndicator = document.getElementById('typingIndicator');
 
         // 사용자 ID 설정
-        const userId = "1";
+        const userId = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
         // 텍스트 포매팅 함수 - 개행과 공백 처리
         function formatMessageContent(content) {
@@ -388,7 +388,10 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ message: message })
+                    body: JSON.stringify({
+                        message: message,
+                        userId: userId
+                    })
                 });
 
                 if (!response.ok) {
