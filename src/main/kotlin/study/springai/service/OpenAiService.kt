@@ -1,6 +1,7 @@
 package study.springai.service
 
 import org.springframework.ai.chat.client.ChatClient
+import org.springframework.ai.chat.client.advisor.vectorstore.QuestionAnswerAdvisor
 import org.springframework.ai.chat.memory.ChatMemoryRepository
 import org.springframework.ai.chat.memory.MessageWindowChatMemory
 import org.springframework.ai.chat.messages.AssistantMessage
@@ -10,6 +11,8 @@ import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.ai.embedding.EmbeddingRequest
 import org.springframework.ai.image.ImagePrompt
 import org.springframework.ai.openai.*
+import org.springframework.ai.vectorstore.SearchRequest
+import org.springframework.ai.vectorstore.VectorStore
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import reactor.core.publisher.Flux
@@ -27,6 +30,7 @@ class OpenAiService(
     private val chatMemoryRepository: ChatMemoryRepository,
     private val chatRepository: ChatRepository,
     private val openAiChatClient: ChatClient,
+    private val vectorStore: VectorStore
 ) {
     companion object {
         private const val DEFAULT_CHAT_MODEL = "gpt-4o-mini"
@@ -78,13 +82,26 @@ class OpenAiService(
         val chatMemory = createChatMemory()
         chatMemory.add(userId, UserMessage(text))
 
+        // 옵션
         val options = createChatOptions(model, temperature)
+
+        val ragAdvisor = QuestionAnswerAdvisor.builder(vectorStore)
+            .searchRequest(
+                SearchRequest.builder()
+                    .similarityThreshold(0.8)
+                    .topK(6)
+                    .build()
+            )
+            .build()
+
+        // 프롬프트
         val prompt = Prompt(chatMemory.get(userId), options)
 
         // 응답 메시지를 저장할 임시 버퍼
         val responseBuffer = StringBuilder()
 
         return openAiChatClient.prompt(prompt)
+            .advisors(ragAdvisor)
             .stream()
             .content()
             .map { response ->

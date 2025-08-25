@@ -86,9 +86,13 @@ cd spring-ai
 
 ### 3. 애플리케이션 실행
 
-#### redis
+### redisSearch 설치
 ```bash
-brew services start redis
+brew tap redis/redis-stack
+brew install redis-stack
+redis-stack-server
+# 또는
+nohup redis-stack-server &
 ```
 
 #### mariadb
