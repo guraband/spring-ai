@@ -31,6 +31,8 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.springframework.ai:spring-ai-starter-model-openai")
     implementation("org.springframework.ai:spring-ai-starter-model-vertex-ai-gemini")
+    implementation("org.springframework.ai:spring-ai-advisors-vector-store")
+    implementation("org.springframework.ai:spring-ai-starter-vector-store-redis")
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
     implementation("org.springframework.ai:spring-ai-starter-model-chat-memory-repository-jdbc")
 

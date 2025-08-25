@@ -86,6 +86,16 @@ cd spring-ai
 
 ### 3. 애플리케이션 실행
 
+#### redis
+```bash
+brew services start redis
+```
+
+#### mariadb
+```bash
+brew services start mariadb
+```
+
 #### Gradle Wrapper 사용
 ```bash
 ./gradlew bootRun
